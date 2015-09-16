@@ -1,0 +1,16 @@
+
+<package>
+  <description brief="swri_console">
+
+     swri_console - An alternative rosout viewer.
+
+  </description>
+  <author>Elliot Johnson</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url></url>
+
+  <depend package="roscpp"/>
+  <depend package="rosgraph_msgs"/>
+
+</package>
