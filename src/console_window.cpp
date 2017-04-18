@@ -50,6 +50,13 @@
 #include <QScrollBar>
 #include <QMenu>
 #include <QSettings>
+//added by VM 4/12/2017
+#include <ros/master.h>
+//#include <qstringlistmodel.h>
+//#include <qstringlist.h>
+//#include <QStringListModel>
+
+QString searchString;
 
 using namespace Qt;
 
@@ -167,6 +174,11 @@ ConsoleWindow::ConsoleWindow(LogDatabase *db)
     ui.excludeText, SIGNAL(textChanged(const QString &)),
     this, SLOT(excludeFilterUpdated(const QString &)));
 
+  //added by VM 4/13/2017
+  QObject::connect(
+    ui.searchText, SIGNAL(textChanged(const QString &)),
+    this, SLOT(searchFilterUpdated(const QString &)));
+
   QList<int> sizes;
   sizes.append(100);
   sizes.append(1000);
@@ -205,10 +217,13 @@ void ConsoleWindow::saveLogs()
 
 void ConsoleWindow::connected(bool connected)
 {
-  if (connected) {
-    statusBar()->showMessage("Connected to ROS Master");
+
+	if (connected) {
+		//updated by VM on 4.12.2017 to add current URL
+		QString currentUrl = QString::fromStdString(ros::master::getURI());
+		statusBar()->showMessage("Connected to ROS Master.  URL: "+currentUrl);
   } else {
-    statusBar()->showMessage("Disconnected from ROS Master");
+    statusBar()->showMessage("Disconnected from ROS Master.");
   }
 }
 
@@ -380,6 +395,102 @@ void ConsoleWindow::excludeFilterUpdated(const QString &text)
   db_proxy_->setExcludeFilters(filtered);
   db_proxy_->setExcludeRegexpPattern(text);
   updateExcludeLabel();
+}
+
+//added 4/13/2017 VM
+void ConsoleWindow::searchFilterUpdated(const QString &text)
+{
+	printf("Search\n");
+	ConsoleWindow::nextIndex("search");
+//	// probably want to check for null
+//	//printf("test");
+//	//************************************************************
+//	//QString x = "test";
+//	int currentSelectedRow = ui.messageList->currentIndex().row();
+//	int newSelectRow = db_proxy_->getItemIndex(text,currentSelectedRow, 1);
+//	QModelIndex index = ui.messageList->model()->index(newSelectRow,0);//(y,0);
+//	//ui.messageList->setcu
+//	if(newSelectRow == -1)
+//	{
+//		//indicates that a matching search was not found.
+//		ui.messageList->clearSelection();
+//		return;
+//	}
+//	ui.messageList->setCurrentIndex(index);//  ->messageList->setCurrentIndex(y);
+//	//ui.messageList->setCurrentIndex(db_proxy_.getItemIndex(text));
+//
+//	//QModelIndex y = new QModelIndex();
+//	//QAbstractItemModel x = db_proxy_->itemData(y);// ->QAbstractItemModel();
+//	//ui.label_3->setText(x);
+//	//searchString = text;
+//
+//
+////  QStringList items = text.split(";", QString::SkipEmptyParts);
+////  QStringList filtered;
+////
+////  for (int i = 0; i < items.size(); i++) {
+////    QString x = items[i].trimmed();
+////    if (!x.isEmpty()) {
+////      filtered.append(x);
+////    }
+////  }
+////
+////  db_proxy_->setExcludeFilters(filtered);
+////  db_proxy_->setExcludeRegexpPattern(text);
+////  updateExcludeLabel();
+}
+
+void ConsoleWindow::on_pushPrev_clicked()
+{
+	printf("Prev\n");
+	ConsoleWindow::nextIndex("prev");
+}
+
+void ConsoleWindow::on_pushNext_clicked()
+{
+	printf("Next\n");
+	ConsoleWindow::nextIndex("next");
+}
+
+//funtions: 1)search 2)next 3)prev
+void ConsoleWindow::nextIndex(QString function)
+{
+	int currentSelectedRow = ui.messageList->currentIndex().row();
+	int rowSearchStart = currentSelectedRow;
+	int increment = 1;
+
+	//increment for next
+	if(function == "next"){
+		rowSearchStart++;
+		increment=1;
+	}
+	//decrement for prev
+	else if(function== "prev"){
+		rowSearchStart--;
+		printf("rowSearchStart %d\n ",rowSearchStart);
+		increment=-1;
+	}
+	//for search, no selection (-1) index change to 0
+	else if(function=="search" )
+	{
+		if (rowSearchStart==-1){
+			rowSearchStart =0;
+			printf("rowSearchStart=0");
+		}
+		increment = 1;
+	}
+
+	QString text = ui.searchText->text();
+	int newSelectRow = db_proxy_->getItemIndex(text,rowSearchStart, increment);
+	QModelIndex index = ui.messageList->model()->index(newSelectRow,0);//(y,0);
+	//ui.messageList->setcu
+	if(newSelectRow == -1)
+	{
+		//indicates that a matching search was not found.
+		ui.messageList->clearSelection();
+		return;
+	}
+	ui.messageList->setCurrentIndex(index);//  ->messageList->setCurrentIndex(y);
 }
 
 

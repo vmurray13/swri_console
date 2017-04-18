@@ -70,6 +70,7 @@ class LogDatabaseProxyModel : public QAbstractListModel
   void setFatalColor(const QColor& fatal_color);
   bool isIncludeValid() const;
   bool isExcludeValid() const;
+  int getItemIndex(const QString text, int index, int increment);
 
 
   virtual int rowCount(const QModelIndex &parent) const;
