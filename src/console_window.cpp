@@ -52,9 +52,15 @@
 #include <QSettings>
 //added by VM 4/12/2017
 #include <ros/master.h>
-//#include <qstringlistmodel.h>
-//#include <qstringlist.h>
-//#include <QStringListModel>
+#include <QtGui>
+#include <QStandardItemModel>
+#include <QListView>
+#include <QApplication>
+#include <QList>
+#include <QColor>
+#include <QFont>
+#include <unistd.h>
+
 
 QString searchString;
 
@@ -400,75 +406,36 @@ void ConsoleWindow::excludeFilterUpdated(const QString &text)
 //added 4/13/2017 VM
 void ConsoleWindow::searchFilterUpdated(const QString &text)
 {
-	printf("Search\n");
 	ConsoleWindow::nextIndex("search");
-//	// probably want to check for null
-//	//printf("test");
-//	//************************************************************
-//	//QString x = "test";
-//	int currentSelectedRow = ui.messageList->currentIndex().row();
-//	int newSelectRow = db_proxy_->getItemIndex(text,currentSelectedRow, 1);
-//	QModelIndex index = ui.messageList->model()->index(newSelectRow,0);//(y,0);
-//	//ui.messageList->setcu
-//	if(newSelectRow == -1)
-//	{
-//		//indicates that a matching search was not found.
-//		ui.messageList->clearSelection();
-//		return;
-//	}
-//	ui.messageList->setCurrentIndex(index);//  ->messageList->setCurrentIndex(y);
-//	//ui.messageList->setCurrentIndex(db_proxy_.getItemIndex(text));
-//
-//	//QModelIndex y = new QModelIndex();
-//	//QAbstractItemModel x = db_proxy_->itemData(y);// ->QAbstractItemModel();
-//	//ui.label_3->setText(x);
-//	//searchString = text;
-//
-//
-////  QStringList items = text.split(";", QString::SkipEmptyParts);
-////  QStringList filtered;
-////
-////  for (int i = 0; i < items.size(); i++) {
-////    QString x = items[i].trimmed();
-////    if (!x.isEmpty()) {
-////      filtered.append(x);
-////    }
-////  }
-////
-////  db_proxy_->setExcludeFilters(filtered);
-////  db_proxy_->setExcludeRegexpPattern(text);
-////  updateExcludeLabel();
 }
 
 void ConsoleWindow::on_pushPrev_clicked()
 {
-	printf("Prev\n");
 	ConsoleWindow::nextIndex("prev");
 }
 
 void ConsoleWindow::on_pushNext_clicked()
 {
-	printf("Next\n");
 	ConsoleWindow::nextIndex("next");
 }
 
 //funtions: 1)search 2)next 3)prev
 void ConsoleWindow::nextIndex(QString function)
 {
-	int currentSelectedRow = ui.messageList->currentIndex().row();
+   	int currentSelectedRow = ui.messageList->currentIndex().row();
 	int rowSearchStart = currentSelectedRow;
-	int increment = 1;
+	int increment = 1; //used for search/next/prev; prev(ious) increment will change to -1
 
 	//increment for next
 	if(function == "next"){
-		rowSearchStart++;
-		increment=1;
+		rowSearchStart++;//start search row after current.
+		//increment=1;
 	}
 	//decrement for prev
 	else if(function== "prev"){
-		rowSearchStart--;
+		rowSearchStart--;//start search row before current
 		printf("rowSearchStart %d\n ",rowSearchStart);
-		increment=-1;
+		increment=-1;//up
 	}
 	//for search, no selection (-1) index change to 0
 	else if(function=="search" )
@@ -477,20 +444,36 @@ void ConsoleWindow::nextIndex(QString function)
 			rowSearchStart =0;
 			printf("rowSearchStart=0");
 		}
-		increment = 1;
+		//increment = 1;
+	}
+	else
+	{
+		//should not end up here
+		printf("Invalid string passed to ConsoleWindow::nextIndex");
+		return;
 	}
 
 	QString text = ui.searchText->text();
+	//calls getItemIndex in log_database_proxy_m
 	int newSelectRow = db_proxy_->getItemIndex(text,rowSearchStart, increment);
-	QModelIndex index = ui.messageList->model()->index(newSelectRow,0);//(y,0);
-	//ui.messageList->setcu
-	if(newSelectRow == -1)
+
+
+	if(newSelectRow == -1)  //indicates no match.
 	{
-		//indicates that a matching search was not found.
 		ui.messageList->clearSelection();
 		return;
 	}
-	ui.messageList->setCurrentIndex(index);//  ->messageList->setCurrentIndex(y);
+
+	QModelIndex index = ui.messageList->model()->index(newSelectRow,0);//(y,0);
+
+
+	ui.messageList->setCurrentIndex(index);
+
+	//attempt to paint row color
+	//index = ui.messageList->model()->index(1,0);
+	//ui.messageList->model()->setData(index,QBrush(QColor("red")), Qt::BackgroundRole);
+	//bool x = ui.messageList->model()->submit();
+	//printf("Result %d\n",x);
 }
 
 
@@ -665,6 +648,7 @@ void ConsoleWindow::loadSettings()
 
   bool alternate_row_colors = settings.value(SettingsKeys::ALTERNATE_LOG_ROW_COLORS, true).toBool();
   ui.messageList->setAlternatingRowColors(alternate_row_colors);
+
 }
 }  // namespace swri_console
 

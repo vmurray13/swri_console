@@ -43,6 +43,9 @@
 #include <QSettings>
 #include <swri_console/settings_keys.h>
 #include <QtGlobal>
+#include <algorithm>
+#include <iterator>
+
 
 namespace swri_console
 {
@@ -245,73 +248,51 @@ bool LogDatabaseProxyModel::isExcludeValid() const
   return true;
 }
 
-///dz testing
-//***********************************************************************************************
-//const QModelIndex & LogDatabaseProxyModel::getItemIndex(const QString text)
+//VM added 4/25/2017
 //searchText_ - string from searchText
 //index - currently selected item in messageList
 //increment - +1 = next(i.e. down), -1 = prev (i.e. up)
 int LogDatabaseProxyModel::getItemIndex(const QString searchText_, int index, int increment)
 {
-	//printf("index1%d  msg_mapping_size%d\n",index,msg_mapping_.size());
-	if(searchText_==""||msg_mapping_.size()==0)
+	if(searchText_==""||msg_mapping_.size()==0)//skip search for empty string and empty set.
 	{
 		return -1;
 	}
-	//indicates all items searched
-	bool end = false;
-	//int i=index;
-	//round corners for index
-	//printf("index2%d  msg_mapping_size%d\n",index,msg_mapping_.size());
 
+	bool end = false;//indicates all items searched
+
+	//round corners for searches
 	if(index<0)
 	{
-		printf("proxy_ index<0");
-		index = msg_mapping_.size()-1;//if index out of range set current index to 0;
+		index = msg_mapping_.size()-1;//if index < 0, set to size()-1;
 	}
-	//printf("index3%d\n",index);
 	else if(index>=msg_mapping_.size())
 	{
-		printf("test");
-		index = 0;//if index out of range set current index to 0;
+		index = 0;//if index >size(), set to 0;
 	}
-	//printf("index4%d\n",index);
 
-	//for(i=0;i<5;i++)
-	//{
-	//if(db_->)
-		//for(i=index; i<msg_mapping_.size();i++)
-	int counter=0;
-	while(!end)
+	int counter=0;//used to stop loop once full list has been searched
+	while(!end)//loop through all messages until end or match is found
 		{
-
 			const LineMap line_idx = msg_mapping_[index];
 			const LogEntry &item = db_->log()[line_idx.log_index];
-			//printf("%s\n",qPrintable(item.text.join("|")));// .last()));//qPrintable(item.text));//QPrintable(item.text));
-			QString tempString = item.text.join("|");
-			//printf("%s\n",qPrintable(tempString));
+			QString tempString = item.text.join("|");//concatenate strings
 			if(tempString.toUpper().contains(searchText_.trimmed().toUpper()))
 			{
-				printf("%s%i\n",qPrintable(searchText_),index);
+				//match found, return location
 				return index;
 			}
-			//if(item.text.join"|")
-			//-> msg_mapping_;
 
 			//increment index then address corner rounding
 			index = index + increment;
-
-			if(index<0)
+			if(index<0)//less than 0 set to max
 			{
 				index = msg_mapping_.size()-1;
 			}
-			else if(index>=msg_mapping_.size())
+			else if(index>=msg_mapping_.size())//greater than max, set to 0
 			{
 				index = 0;
 			}
-
-
-			//printf("%s%i\n",qPrintable(tempString),index);
 
 			//exit if all messages have been scanned
 			counter++;
@@ -319,16 +300,11 @@ int LogDatabaseProxyModel::getItemIndex(const QString searchText_, int index, in
 			{
 				end = true;
 			}
-
-
 		}
-
-	//printf("Not Found %s\n",qPrintable(searchText_));
 	return -1;
 
 
 }
-//dz testing
 
 
 QVariant LogDatabaseProxyModel::data(

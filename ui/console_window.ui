@@ -215,6 +215,9 @@
           <property name="contextMenuPolicy">
            <enum>Qt::CustomContextMenu</enum>
           </property>
+          <property name="styleSheet">
+           <string notr="true"/>
+          </property>
           <property name="selectionMode">
            <enum>QAbstractItemView::ExtendedSelection</enum>
           </property>
@@ -222,7 +225,14 @@
         </item>
         <item>
          <layout class="QGridLayout" name="gridLayout">
-          <item row="1" column="1">
+          <item row="1" column="0">
+           <widget class="QLabel" name="excludeLabel">
+            <property name="text">
+             <string>Exclude</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
            <widget class="QLineEdit" name="excludeText">
             <property name="toolTip">
              <string>Filter for messages that don't include substrings. Separate substrings with a semicolon.</string>
@@ -236,7 +246,7 @@
             </property>
            </widget>
           </item>
-          <item row="0" column="1">
+          <item row="0" column="2">
            <widget class="QLineEdit" name="includeText">
             <property name="toolTip">
              <string>Filter for messages that include substrings. Separate substrings with a semicolon.</string>
@@ -246,15 +256,11 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="excludeLabel">
-            <property name="text">
-             <string>Exclude</string>
-            </property>
-           </widget>
-          </item>
-          <item row="4" column="1">
-           <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item row="2" column="2">
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
+            <item>
+             <widget class="QLineEdit" name="searchText"/>
+            </item>
             <item>
              <widget class="QPushButton" name="pushNext">
               <property name="text">
@@ -271,27 +277,10 @@
             </item>
            </layout>
           </item>
-          <item row="4" column="0">
-           <widget class="QLabel" name="label_2">
-            <property name="text">
-             <string>     </string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="0">
+          <item row="2" column="0">
            <widget class="QLabel" name="label">
             <property name="text">
              <string>Search</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="1">
-           <widget class="QLineEdit" name="searchText"/>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="label_3">
-            <property name="text">
-             <string>     </string>
             </property>
            </widget>
           </item>
