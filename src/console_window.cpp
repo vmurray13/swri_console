@@ -50,16 +50,7 @@
 #include <QScrollBar>
 #include <QMenu>
 #include <QSettings>
-//added by VM 4/12/2017
-#include <ros/master.h>
-#include <QtGui>
-#include <QStandardItemModel>
-#include <QListView>
-#include <QApplication>
-#include <QList>
-#include <QColor>
-#include <QFont>
-#include <unistd.h>
+#include <ros/master.h>//required for getURI, VCM 12 April 2017
 
 
 QString searchString;
@@ -180,7 +171,7 @@ ConsoleWindow::ConsoleWindow(LogDatabase *db)
     ui.excludeText, SIGNAL(textChanged(const QString &)),
     this, SLOT(excludeFilterUpdated(const QString &)));
 
-  //added by VM 4/13/2017
+  //Connect 'Search' text modification to searchFilterUpdated, VCM 13 April 2017
   QObject::connect(
     ui.searchText, SIGNAL(textChanged(const QString &)),
     this, SLOT(searchFilterUpdated(const QString &)));
@@ -202,11 +193,13 @@ void ConsoleWindow::clearAll()
 {
   db_->clear();
   node_list_model_->clear();
+  db_proxy_->clearSearchFailure();//resets failed search variables, VCM 27 April 2017
 }
 
 void ConsoleWindow::clearMessages()
 {
   db_->clear();
+  db_proxy_->clearSearchFailure();//resets failed search variables, VCM 27 April 2017
 }
 
 void ConsoleWindow::saveLogs()
@@ -225,7 +218,7 @@ void ConsoleWindow::connected(bool connected)
 {
 
 	if (connected) {
-		//updated by VM on 4.12.2017 to add current URL
+		//When connected, display current URL along with status in the status bar, VCM 4/12/2017
 		QString currentUrl = QString::fromStdString(ros::master::getURI());
 		statusBar()->showMessage("Connected to ROS Master.  URL: "+currentUrl);
   } else {
@@ -240,6 +233,7 @@ void ConsoleWindow::closeEvent(QCloseEvent *event)
 
 void ConsoleWindow::nodeSelectionChanged()
 {
+  db_proxy_->clearSearchFailure();//clear search failure criteria, VCM 26 April 2017
   QModelIndexList selection = ui.nodeList->selectionModel()->selectedIndexes();
   std::set<std::string> nodes;
   QStringList node_names;
@@ -287,6 +281,7 @@ void ConsoleWindow::setSeverityFilter()
   settings.setValue(SettingsKeys::SHOW_FATAL, ui.checkFatal->isChecked());
 
   db_proxy_->setSeverityFilter(mask);
+  db_proxy_->clearSearchFailure();//resets search failure variables, VCM 27 April 2017
 }
 
 void ConsoleWindow::messagesAdded()
@@ -383,6 +378,7 @@ void ConsoleWindow::includeFilterUpdated(const QString &text)
 
   db_proxy_->setIncludeFilters(filtered);
   db_proxy_->setIncludeRegexpPattern(text);
+  db_proxy_->clearSearchFailure();//resets failed search variables, VCM 27 April 2017
   updateIncludeLabel();
 }
 
@@ -400,51 +396,52 @@ void ConsoleWindow::excludeFilterUpdated(const QString &text)
 
   db_proxy_->setExcludeFilters(filtered);
   db_proxy_->setExcludeRegexpPattern(text);
+  db_proxy_->clearSearchFailure();//resets failed search variables, VCM 27 April 2017
   updateExcludeLabel();
 }
 
-//added 4/13/2017 VM
+//Slot called when 'Search' text modified, 13 April 2017 VCM
 void ConsoleWindow::searchFilterUpdated(const QString &text)
 {
-	ConsoleWindow::nextIndex("search");
+	ConsoleWindow::updateSearchIndex("search");
 }
-
+//Slot called when 'Previous' button pushed, 13 April 2017 VCM
 void ConsoleWindow::on_pushPrev_clicked()
 {
-	ConsoleWindow::nextIndex("prev");
+	ConsoleWindow::updateSearchIndex("prev");
 }
-
+//Slot called when 'Next' button pushed,  13 April 2017 VCM
 void ConsoleWindow::on_pushNext_clicked()
 {
-	ConsoleWindow::nextIndex("next");
+	ConsoleWindow::updateSearchIndex("next");
 }
 
-//funtions: 1)search 2)next 3)prev
-void ConsoleWindow::nextIndex(QString function)
+//        Search Function Definitions:
+//          1)search - user modified 'Search' text
+//          2)next   - user pressed 'Next' button
+//          3)prev   - user pressed 'Previous' button
+//			Locates and selects the next item based on search criteria, VCM 26 April 2017
+void ConsoleWindow::updateSearchIndex(QString function)
 {
-   	int currentSelectedRow = ui.messageList->currentIndex().row();
-	int rowSearchStart = currentSelectedRow;
+	int rowSearchStart = ui.messageList->currentIndex().row();//retrieve current index
 	int increment = 1; //used for search/next/prev; prev(ious) increment will change to -1
-
-	//increment for next
+	QString searchText = ui.searchText->text();//actual text to search for
+	searchText = searchText.toUpper().trimmed();//remove lowercase and lead/trailing spaces.
+	//next button pushed
 	if(function == "next"){
 		rowSearchStart++;//start search row after current.
-		//increment=1;
 	}
-	//decrement for prev
+	//Previous button pushed
 	else if(function== "prev"){
 		rowSearchStart--;//start search row before current
-		printf("rowSearchStart %d\n ",rowSearchStart);
-		increment=-1;//up
+		increment=-1; //-1 to move search up instead of down
 	}
-	//for search, no selection (-1) index change to 0
+	//search text modified
 	else if(function=="search" )
 	{
 		if (rowSearchStart==-1){
-			rowSearchStart =0;
-			printf("rowSearchStart=0");
+			rowSearchStart =0;//for search, no selection (-1) index change to 0
 		}
-		//increment = 1;
 	}
 	else
 	{
@@ -452,22 +449,17 @@ void ConsoleWindow::nextIndex(QString function)
 		printf("Invalid string passed to ConsoleWindow::nextIndex");
 		return;
 	}
-
-	QString text = ui.searchText->text();
-	//calls getItemIndex in log_database_proxy_m
-	int newSelectRow = db_proxy_->getItemIndex(text,rowSearchStart, increment);
-
-
-	if(newSelectRow == -1)  //indicates no match.
+	//calls getItemIndex in log_database_proxy_m, returns new index
+	int newRowIndex = db_proxy_->getItemIndex(searchText,rowSearchStart, increment);
+	ui.messageList->clearSelection();//clear current selection
+	if(newRowIndex == -1)  //indicates no match.
 	{
-		ui.messageList->clearSelection();
 		return;
 	}
 
-	QModelIndex index = ui.messageList->model()->index(newSelectRow,0);//(y,0);
-
-
-	ui.messageList->setCurrentIndex(index);
+	QModelIndex index = ui.messageList->model()->index(newRowIndex,0);//defines desired index
+	ui.messageList->setCurrentIndex(index);//sets desired index, re-centers screen on new index
+	ui.checkFollowNewest->setChecked(false);//stops scrolling if search found
 
 	//attempt to paint row color
 	//index = ui.messageList->model()->index(1,0);

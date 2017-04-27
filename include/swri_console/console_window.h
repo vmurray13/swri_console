@@ -88,7 +88,7 @@ class ConsoleWindow : public QMainWindow {
   void setFatalColor();
   void on_pushPrev_clicked();
   void on_pushNext_clicked();
-  void nextIndex(QString function);
+  void updateSearchIndex(QString function);
 
 private:
   void chooseButtonColor(QPushButton* widget);
